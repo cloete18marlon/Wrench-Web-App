@@ -1,0 +1,13 @@
+# Explicit build config. Netlify can auto-detect Next.js, but pinning it here
+# means the build is reproducible and reviewable rather than inferred.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# The official Next.js runtime. Required for server-rendered routes --
+# every page in this app queries Supabase on request, so none of it is static.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
