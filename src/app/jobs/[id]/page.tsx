@@ -1,9 +1,22 @@
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { QuoteForm } from "./QuoteForm";
+import { PayIntoVaultButton } from "./PayIntoVaultButton";
+import { ReleasePaymentButton } from "./ReleasePaymentButton";
 import { acceptQuote } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_PILL: Record<string, "ok" | "warn" | "fail"> = {
+  requested: "warn",
+  quoted: "warn",
+  accepted: "warn",
+  in_progress: "ok",
+  completed: "ok",
+  released: "ok",
+  disputed: "fail",
+  cancelled: "fail",
+};
 
 type QuoteRow = {
   id: string;
@@ -45,6 +58,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const myQuote = proProfile ? typedQuotes.find((q) => q.pro_id === proProfile.id) : undefined;
   const canQuote = !isOwner && proProfile && !myQuote && job.status === "requested" && !job.pro_id;
 
+  const { data: myPayout } =
+    !isOwner && myQuote?.status === "accepted"
+      ? await supabase.from("payouts").select("status, amount").eq("job_id", id).eq("pro_id", proProfile!.id).maybeSingle()
+      : { data: null };
+
   return (
     <main>
       <div className="label" style={{ padding: "22px 20px 8px" }}>
@@ -56,7 +74,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         {job.description && <p style={{ marginTop: 8 }}>{job.description}</p>}
         <div className="row">
           <div className="row-label">Status</div>
-          <span className="pill warn">{job.status}</span>
+          <span className={`pill ${STATUS_PILL[job.status] ?? "warn"}`}>{job.status}</span>
         </div>
         {(job.budget_min || job.budget_max) && (
           <div className="row">
@@ -75,6 +93,33 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </div>
+
+      {isOwner && job.status === "accepted" && (
+        <div className="card">
+          <h3>Pay into the Vault</h3>
+          <p>Your payment is held securely — the pro isn&apos;t paid until you confirm the job&apos;s done.</p>
+          <div style={{ marginTop: 10 }}>
+            <PayIntoVaultButton jobId={job.id} />
+          </div>
+        </div>
+      )}
+
+      {isOwner && job.status === "in_progress" && (
+        <div className="card">
+          <h3>Payment held in the Vault</h3>
+          <p>Once the job&apos;s done, confirm below to release payment to the pro.</p>
+          <div style={{ marginTop: 10 }}>
+            <ReleasePaymentButton jobId={job.id} />
+          </div>
+        </div>
+      )}
+
+      {isOwner && job.status === "released" && (
+        <div className="card">
+          <h3>Payment released</h3>
+          <p>The pro has been paid out.</p>
+        </div>
+      )}
 
       {isOwner && (
         <>
@@ -127,6 +172,19 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               className={`pill ${myQuote.status === "accepted" ? "ok" : myQuote.status === "declined" ? "fail" : "warn"}`}
             >
               {myQuote.status}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!isOwner && myPayout && (
+        <div className="card">
+          <h3>Payout</h3>
+          <p>R{Number(myPayout.amount).toFixed(2)}</p>
+          <div className="row">
+            <div className="row-label">Status</div>
+            <span className={`pill ${myPayout.status === "paid" ? "ok" : myPayout.status === "failed" ? "fail" : "warn"}`}>
+              {myPayout.status}
             </span>
           </div>
         </div>

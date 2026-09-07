@@ -3,9 +3,20 @@ import { createServerClient } from "@supabase/ssr";
 
 // Everything else requires a signed-in session. Keep this list to routes that
 // must work before/without auth: the marketing landing page, the auth forms
-// themselves, the email-confirmation/OAuth callback, and the ops status page
-// (useful for diagnosing a broken deploy when login itself might be at fault).
-const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/auth/callback", "/status"]);
+// themselves, the email-confirmation/OAuth callback, the ops status page
+// (useful for diagnosing a broken deploy when login itself might be at fault),
+// and the Peach Payments webhooks — Peach calls these server-to-server with
+// no session cookie; authenticity is checked via HMAC signature inside the
+// handler instead.
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/login",
+  "/signup",
+  "/auth/callback",
+  "/status",
+  "/api/webhooks/peach/checkout",
+  "/api/webhooks/peach/payout",
+]);
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

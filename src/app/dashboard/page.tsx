@@ -103,6 +103,9 @@ export default async function DashboardPage() {
               {isPro ? "Approved" : TIER_LABEL[proProfile.verification_tier] ?? "Pending review"}
             </span>
           </div>
+          <Link href="/dashboard/banking" className="btn" style={{ marginTop: 10, display: "inline-block" }}>
+            Banking details
+          </Link>
         </div>
       ) : (
         <div className="card">
