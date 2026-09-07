@@ -24,6 +24,9 @@ const STEPS = [
 
 export default async function Home() {
   const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const { data: trades, error } = await supabase
     .from("trades")
     .select("id, name")
@@ -43,7 +46,14 @@ export default async function Home() {
       </section>
 
       <nav className="nav">
-        <a href="/directory">Browse pros</a>
+        {user ? (
+          <a href="/dashboard">Dashboard</a>
+        ) : (
+          <>
+            <a href="/login">Log in</a>
+            <a href="/signup">Sign up</a>
+          </>
+        )}
         <a href="/status">System status</a>
       </nav>
 
