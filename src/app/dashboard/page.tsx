@@ -32,6 +32,7 @@ export default async function DashboardPage() {
 
   const roleNames = roles?.map((r) => r.role) ?? [];
   const isPro = roleNames.includes("pro");
+  const isAdmin = roleNames.includes("admin");
 
   return (
     <main>
@@ -61,6 +62,35 @@ export default async function DashboardPage() {
           </span>
         </div>
       </div>
+
+      <div className="label">Jobs</div>
+      <div className="card">
+        <div className="row">
+          <div className="row-label">Post a job or check on quotes</div>
+          <Link href="/jobs" className="btn" style={{ padding: "8px 14px" }}>
+            My jobs
+          </Link>
+        </div>
+        {isPro && (
+          <div className="row">
+            <div className="row-label">Open jobs in your trades</div>
+            <Link href="/jobs" className="btn" style={{ padding: "8px 14px" }}>
+              Browse
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div className="card">
+          <div className="row">
+            <div className="row-label">Pro applications waiting on you</div>
+            <Link href="/admin" className="btn btn-primary" style={{ padding: "8px 14px" }}>
+              Review
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="label">Work as a pro</div>
       {proProfile ? (

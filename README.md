@@ -22,12 +22,16 @@ Open http://localhost:3000
 | `/auth/callback` | Exchanges the signup-confirmation link's code for a session. Also where OAuth will land once a provider is added. |
 | `/dashboard` | Signed-in home. Shows role(s) and, for non-pros, a link to apply. |
 | `/dashboard/become-a-pro` | Pro application form (trade, bio, rate, radius). Writes `pro_profiles` + `pro_trades`; does **not** grant the `pro` role. |
+| `/jobs` | Jobs you posted, plus (if you're an approved pro) open jobs matching your trades. |
+| `/jobs/new` | Post a job (trade, title, description, budget, preferred date). |
+| `/jobs/[id]` | Job detail. Owner sees quotes and can accept one; an eligible pro sees a quote form. |
+| `/admin` | Lists pro applications; lets an admin grant the `pro` role. Admin-only — redirects everyone else to `/dashboard`. |
 | `/directory` | Pro directory from `pro_profiles`. Not yet built. |
 | `/status` | Live diagnostics: env vars, reads, and RLS lockout on the money tables. Not yet built. |
 
 Everything except `/`, `/login`, `/signup`, `/auth/callback`, and `/status` requires
-being signed in — enforced in `src/middleware.ts`, which also refreshes the
-session cookie on every request.
+being signed in — enforced in `src/proxy.ts` (Next 16's replacement for
+`middleware.ts`), which also refreshes the session cookie on every request.
 
 ## The two checks that matter
 
@@ -85,7 +89,11 @@ policies.
 
 - No Google (or other OAuth) sign-in yet — see Auth notes above.
 - No "forgot password" flow yet.
-- No admin UI for approving pro applications — grant the `pro` role by hand for now.
+- `/admin` only grants the `pro` role and bumps `verification_tier` to 1 — no
+  real ID/background-check pipeline behind it yet.
+- Accepting a quote does three separate updates (accept the quote, decline the
+  rest, assign the job) rather than one DB transaction — fine for now since
+  nothing else races against it, but worth an RPC if that changes.
 - No pro seed data, so `/directory` (not yet built) would show its empty state.
 - No radius search. That lands with PostGIS in Week 11.
 - No service-role client. Nothing in this app needs to bypass RLS yet, and the
@@ -94,9 +102,17 @@ policies.
 ## A note on verification
 
 Queries were checked against the staging database as the `anon` role: 8 trades
-readable, 0 rows from `ledger_entries` and `audit_log`. A migration was added
-(`pro_trades_owner_write`) giving a pro insert/delete rights on their own
-`pro_trades` rows — that policy didn't exist before and the application form
-depends on it. `npm run build` and the signup → confirm → login → apply flow
-should be exercised locally before relying on this in production; see the
-`.env.local.example` note about `NEXT_PUBLIC_SITE_URL`.
+readable, 0 rows from `ledger_entries` and `audit_log`. Two migrations were
+added because the tables had no write path at all for what the UI needs:
+
+- `pro_trades_owner_write` — a pro can attach their own trades.
+- `jobs_quotes_roles_rls` — adds `has_role()`, lets approved pros browse open
+  jobs in their trade, lets a customer accept/decline quotes on their own job,
+  lets a pro insert a quote (only if approved and the job is still open), and
+  lets an admin grant roles / bump `verification_tier`.
+
+`npm run build` passes and route protection (redirects to `/login`) was
+checked with curl for every new route. The full signup → confirm → post a job
+→ apply as pro → get approved → quote → accept loop has **not** been
+exercised against real data — this dev sandbox's outbound network can't reach
+the Supabase project directly. Run it locally before trusting it end to end.
