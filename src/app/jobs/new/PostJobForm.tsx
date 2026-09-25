@@ -5,14 +5,20 @@ import { postJob, type PostJobState } from "./actions";
 
 const initialState: PostJobState = {};
 
-export function PostJobForm({ trades }: { trades: { id: string; name: string }[] }) {
+export function PostJobForm({
+  trades,
+  defaultTradeId,
+}: {
+  trades: { id: string; name: string }[];
+  defaultTradeId?: string;
+}) {
   const [state, formAction, pending] = useActionState(postJob, initialState);
 
   return (
     <form className="form" action={formAction}>
       <div className="field">
         <label htmlFor="tradeId">Trade</label>
-        <select id="tradeId" name="tradeId" required defaultValue="">
+        <select id="tradeId" name="tradeId" required defaultValue={defaultTradeId ?? ""}>
           <option value="" disabled>
             Select a trade
           </option>

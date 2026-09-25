@@ -18,6 +18,18 @@ const PUBLIC_PATHS = new Set([
   "/api/webhooks/peach/payout",
 ]);
 
+// Path prefixes guests may browse: the pro directory and every public pro
+// profile under it. Anything a guest does (request a quote, message) lives
+// under a gated path, so the gate sits exactly where the prototype put it.
+const PUBLIC_PREFIXES = ["/pros"];
+
+function isPublicPath(pathname: string) {
+  return (
+    PUBLIC_PATHS.has(pathname) ||
+    PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))
+  );
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -48,11 +60,11 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.has(pathname);
+  const isPublic = isPublicPath(pathname);
 
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

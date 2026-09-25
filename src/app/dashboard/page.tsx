@@ -2,15 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase";
 import { logout } from "../login/actions";
+import { tierLabel } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
 
-const TIER_LABEL: Record<number, string> = {
-  0: "Not verified yet",
-  1: "ID verified",
-  2: "Background checked",
-  3: "Fully verified",
-};
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabase();
@@ -100,7 +95,7 @@ export default async function DashboardPage() {
           <div className="row">
             <div className="row-label">Status</div>
             <span className={`pill ${isPro ? "ok" : "warn"}`}>
-              {isPro ? "Approved" : TIER_LABEL[proProfile.verification_tier] ?? "Pending review"}
+              {isPro ? tierLabel(proProfile.verification_tier) : "Pending review"}
             </span>
           </div>
           <Link href="/dashboard/banking" className="btn" style={{ marginTop: 10, display: "inline-block" }}>

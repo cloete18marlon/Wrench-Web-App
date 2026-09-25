@@ -23,7 +23,7 @@ type QuoteRow = {
   status: string;
   estimated_days: number | null;
   pro_id: string;
-  pro_profiles: { company_name: string | null } | null;
+  pro_profiles: { display_name: string | null; company_name: string | null } | null;
   quote_line_items: { description: string; amount: number }[];
 };
 
@@ -48,7 +48,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const [{ data: quotes }, { data: proProfile }] = await Promise.all([
     supabase
       .from("quotes")
-      .select("id, status, estimated_days, pro_id, pro_profiles(company_name), quote_line_items(description, amount)")
+      .select("id, status, estimated_days, pro_id, pro_profiles(display_name, company_name), quote_line_items(description, amount)")
       .eq("job_id", id)
       .order("created_at", { ascending: false }),
     supabase.from("pro_profiles").select("id").eq("user_id", user.id).maybeSingle(),
@@ -129,7 +129,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               const total = quote.quote_line_items.reduce((sum, li) => sum + Number(li.amount), 0);
               return (
                 <div className="card" key={quote.id}>
-                  <h3>{quote.pro_profiles?.company_name || "Pro"}</h3>
+                  <h3>{quote.pro_profiles?.company_name || quote.pro_profiles?.display_name || "Pro"}</h3>
                   <p>R{total.toFixed(2)} {quote.estimated_days ? `· ${quote.estimated_days} days` : ""}</p>
                   <div className="row">
                     <div className="row-label">Status</div>

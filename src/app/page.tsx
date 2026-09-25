@@ -1,19 +1,10 @@
+import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase";
+import { TRADE_EMOJI } from "@/lib/pros";
 import { Logo } from "./logo";
 
 // Always hit the database rather than serving a cached build-time snapshot.
 export const dynamic = "force-dynamic";
-
-const TRADE_EMOJI: Record<string, string> = {
-  Painting: "🎨",
-  Electrical: "⚡",
-  Plumbing: "🚰",
-  Carpentry: "🪚",
-  Landscaping: "🌿",
-  Cleaning: "🧹",
-  Tiling: "🧱",
-  Roofing: "🏠",
-};
 
 const STEPS = [
   ["Request a quote", "Describe the job, set your budget, and search pros within your radius."],
@@ -46,15 +37,17 @@ export default async function Home() {
       </section>
 
       <nav className="nav">
+        <Link href="/pros" className="primary">
+          Find a pro
+        </Link>
         {user ? (
-          <a href="/dashboard">Dashboard</a>
+          <Link href="/dashboard">Dashboard</Link>
         ) : (
           <>
-            <a href="/login">Log in</a>
-            <a href="/signup">Sign up</a>
+            <Link href="/login">Log in</Link>
+            <Link href="/signup">Sign up</Link>
           </>
         )}
-        <a href="/status">System status</a>
       </nav>
 
       <div className="label">
@@ -73,10 +66,10 @@ export default async function Home() {
       ) : trades && trades.length > 0 ? (
         <div className="trades">
           {trades.map((t) => (
-            <div className="chip" key={t.id}>
+            <Link className="chip" key={t.id} href={`/pros?trade=${encodeURIComponent(t.name)}`}>
               <span className="emoji">{TRADE_EMOJI[t.name] ?? "🔧"}</span>
               {t.name}
-            </div>
+            </Link>
           ))}
         </div>
       ) : (

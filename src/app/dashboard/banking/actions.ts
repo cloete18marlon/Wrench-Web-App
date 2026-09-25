@@ -24,10 +24,23 @@ export async function saveBankingDetails(
     return { error: "Fill in every field." };
   }
 
-  const { error } = await supabase
+  const { data: proProfile } = await supabase
     .from("pro_profiles")
-    .update({ payout_details: { accountHolder, bankName, accountNumber, branchCode } })
-    .eq("user_id", user.id);
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!proProfile) return { error: "Apply as a pro before adding banking details." };
+
+  const { error } = await supabase.from("pro_payout_accounts").upsert(
+    {
+      pro_id: proProfile.id,
+      account_holder: accountHolder,
+      bank_name: bankName,
+      account_number: accountNumber,
+      branch_code: branchCode,
+    },
+    { onConflict: "pro_id" }
+  );
 
   if (error) return { error: error.message };
 
