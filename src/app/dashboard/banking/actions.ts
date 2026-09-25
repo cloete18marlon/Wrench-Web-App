@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
+import { holdFmt, holdUntil } from "@/lib/security";
 
 export type BankingState = { error?: string; success?: boolean };
 
@@ -30,6 +31,12 @@ export async function saveBankingDetails(
     .eq("user_id", user.id)
     .maybeSingle();
   if (!proProfile) return { error: "Apply as a pro before adding banking details." };
+
+  // The database refuses this during a hold anyway; this just explains why.
+  const hold = await holdUntil(supabase, user.id);
+  if (hold) {
+    return { error: `Banking details are locked until ${holdFmt.format(hold)} after a recovery-code sign-in.` };
+  }
 
   const { error } = await supabase.from("pro_payout_accounts").upsert(
     {

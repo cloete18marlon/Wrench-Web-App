@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BackButton } from "@/app/NavHistory";
+import { ProAvatar } from "@/app/ProAvatar";
 import { notFound } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { TIER_BADGE } from "@/lib/badges";
@@ -35,13 +37,9 @@ export default async function ProProfilePage({ params }: { params: Promise<{ id:
     <main className="has-sticky">
       <section className="profile-hero">
         <div className="profile-top">
-          <Link href="/pros" className="round-btn" aria-label="Back to all pros">
-            ←
-          </Link>
+          <BackButton tone="dark" fallback="/pros" />
         </div>
-        <span className="avatar avatar-lg" aria-hidden="true">
-          {initials(pro.name)}
-        </span>
+        <ProAvatar url={pro.avatarUrl} name={pro.name} initials={initials(pro.name)} size="lg" />
         <h1 className="profile-name">{pro.name}</h1>
         <p className="profile-sub">
           {[pro.company, pro.trades.map((t) => t.name).join(", "), pro.hourlyRate !== null ? `R${pro.hourlyRate}/hr` : null]

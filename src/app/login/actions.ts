@@ -2,13 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
+import { safeNext } from "@/lib/safe-next";
 
 export type LoginState = { error?: string };
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/dashboard");
+  const next = formData.get("next");
 
   if (!email || !password) return { error: "Enter your email and password." };
 
@@ -22,13 +23,12 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Incorrect email or password." };
   }
 
-  redirect(isSafeNext(next) ? next : "/dashboard");
-}
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+    redirect(`/login/mfa?next=${encodeURIComponent(safeNext(next))}`);
+  }
 
-// Only same-site paths. "//evil.com" and "/\evil.com" start with "/" but
-// browsers treat them as links to another site.
-function isSafeNext(next: string) {
-  return next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\");
+  redirect(safeNext(next));
 }
 
 export async function logout() {

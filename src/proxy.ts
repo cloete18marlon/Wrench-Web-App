@@ -23,6 +23,8 @@ const PUBLIC_PATHS = new Set([
 // under a gated path, so the gate sits exactly where the prototype put it.
 const PUBLIC_PREFIXES = ["/pros"];
 
+const MFA_PATH = "/login/mfa";
+
 function isPublicPath(pathname: string) {
   return (
     PUBLIC_PATHS.has(pathname) ||
@@ -66,6 +68,18 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Two-step verification. Once someone has an authenticator set up, a
+  // password alone only reaches the public pages: every signed-in page asks
+  // for the code first. aal2 is the session level a verified code grants.
+  if (user && !isPublic && pathname !== MFA_PATH) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const mfaUrl = new URL(MFA_PATH, request.url);
+      mfaUrl.searchParams.set("next", pathname + request.nextUrl.search);
+      return NextResponse.redirect(mfaUrl);
+    }
   }
 
   if (user && (pathname === "/login" || pathname === "/signup")) {

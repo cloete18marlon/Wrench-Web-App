@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { PageHeader } from "@/app/PageHeader";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { QuoteForm } from "./QuoteForm";
@@ -65,9 +67,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px" }}>
-        Job
-      </div>
+      <PageHeader title="Job details" back="/jobs" />
       <div className="card">
         <h3>{job.title}</h3>
         <p className="row-note">{(job.trades as unknown as { name: string } | null)?.name}</p>
@@ -93,6 +93,17 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </div>
+
+      {job.pro_id && (isOwner || proProfile?.id === job.pro_id) && (
+        <div className="card">
+          <div className="row" style={{ padding: 0, border: "none" }}>
+            <div className="row-label">{isOwner ? "Chat with your pro" : "Chat with the customer"}</div>
+            <Link href={`/messages/${job.id}`} className="btn" style={{ padding: "8px 14px" }}>
+              Open chat
+            </Link>
+          </div>
+        </div>
+      )}
 
       {isOwner && job.status === "accepted" && (
         <div className="card">

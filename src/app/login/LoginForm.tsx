@@ -37,7 +37,10 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       </form>
 
       <p className="link-row">
-        No account? <Link href="/signup">Sign up</Link>
+        No account?{" "}
+        <Link href={next && next !== "/dashboard" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>
+          Sign up
+        </Link>
       </p>
     </>
   );
