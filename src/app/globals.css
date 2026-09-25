@@ -146,6 +146,44 @@ a { text-decoration: none; color: inherit; }
   font-size: 11px; color: var(--ink-soft); line-height: 1.6;
 }
 
+/* ---- auth forms ---- */
+.hero-compact { padding: 34px 26px 20px; }
+
+.form { padding: 0 20px; display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.field input,
+.field textarea,
+.field select {
+  font: inherit; font-size: 14px; padding: 11px 13px;
+  border: 1px solid var(--mist-2); border-radius: var(--radius-sm);
+  background: var(--white); color: var(--ink);
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+.checkbox-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.checkbox-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--navy);
+  background: var(--mist); border-radius: 20px; padding: 8px 12px;
+}
+
+.btn {
+  font: inherit; font-size: 14px; font-weight: 700; text-align: center;
+  padding: 12px 18px; border-radius: var(--radius-sm); border: 1px solid var(--mist-2);
+  background: var(--white); color: var(--navy); cursor: pointer;
+}
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btn-primary { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+.error-text { font-size: 12.5px; color: var(--red); margin: 0; }
+.success-text { font-size: 12.5px; color: var(--green); margin: 0; }
+
+.link-row { text-align: center; font-size: 13px; padding: 18px 20px 30px; color: var(--ink-soft); }
+.link-row a { color: var(--blue); font-weight: 600; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
