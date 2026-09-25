@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { siteUrl } from "@/lib/site";
+import { safeNext } from "@/lib/safe-next";
 
 export type SignupState = { error?: string; success?: boolean };
 
@@ -10,6 +11,7 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
   const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   if (!fullName) return { error: "Enter your name." };
   if (!email) return { error: "Enter your email." };
@@ -21,7 +23,9 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      // The confirmation link brings them back to what they were doing,
+      // e.g. requesting a quote from a pro they found while browsing.
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
 
@@ -34,5 +38,5 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
     return { success: true };
   }
 
-  redirect("/dashboard");
+  redirect(next);
 }

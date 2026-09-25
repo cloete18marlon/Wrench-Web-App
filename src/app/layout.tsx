@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { createServerSupabase } from "@/lib/supabase";
+import { BottomNav } from "./BottomNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +9,22 @@ export const metadata: Metadata = {
     "Find trusted, verified tradespeople near you. Payment held in the Wrenchy Vault until the job is done.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// viewport-fit=cover lets the tab bar sit clear of the iPhone home indicator.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Only decides whether the last tab says "Profile" or "Log in". Access
+  // control lives in proxy.ts and RLS, never here.
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const signedIn = !!user;
+
   return (
     <html lang="en">
       <head>
@@ -19,7 +36,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <div className="shell">{children}</div>
+        <div className="shell">
+          {children}
+          <BottomNav signedIn={signedIn} />
+        </div>
       </body>
     </html>
   );

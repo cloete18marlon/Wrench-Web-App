@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { QuoteForm } from "./QuoteForm";
@@ -93,6 +94,17 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </div>
+
+      {job.pro_id && (isOwner || proProfile?.id === job.pro_id) && (
+        <div className="card">
+          <div className="row" style={{ padding: 0, border: "none" }}>
+            <div className="row-label">{isOwner ? "Chat with your pro" : "Chat with the customer"}</div>
+            <Link href={`/messages/${job.id}`} className="btn" style={{ padding: "8px 14px" }}>
+              Open chat
+            </Link>
+          </div>
+        </div>
+      )}
 
       {isOwner && job.status === "accepted" && (
         <div className="card">

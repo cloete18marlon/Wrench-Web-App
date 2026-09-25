@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase";
+import { safeNext } from "@/lib/safe-next";
 
 // Landing point for both the signup-confirmation email link and (once added)
 // OAuth sign-in — both hand back a PKCE `code` that this exchanges for a
@@ -7,7 +8,7 @@ import { createServerSupabase } from "@/lib/supabase";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = safeNext(searchParams.get("next"));
 
   if (code) {
     const supabase = await createServerSupabase();

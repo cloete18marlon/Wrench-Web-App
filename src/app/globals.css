@@ -356,6 +356,101 @@ a.chip:focus-visible, .trade-pill:focus-visible, .pro-card:focus-visible,
 .sticky-cta .btn { display: block; }
 .cta-note { margin: 0; font-size: 11.5px; color: var(--ink-soft); line-height: 1.45; text-align: center; }
 
+/* ================= tab bar =================
+   The prototype's bottom nav. Fixed to the viewport, centred on the
+   480px shell, clear of the iPhone home indicator. */
+:root { --tab-h: 62px; }
+
+.shell { padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px)); }
+
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 30;
+  display: flex; justify-content: space-around; align-items: stretch;
+  background: var(--white); border-top: 1px solid var(--mist-2);
+  padding: 6px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 520px) {
+  .tab-bar { bottom: 24px; border-radius: 0 0 28px 28px; }
+}
+.tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; padding: 6px 0; border-radius: 12px;
+  font-size: 10.5px; font-weight: 600; color: var(--ink-soft);
+}
+.tab svg { opacity: 0.7; }
+.tab.active { color: var(--blue); }
+.tab.active svg { opacity: 1; }
+.tab:hover { background: var(--mist); }
+.tab:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* Things that stick to the bottom sit on top of the tab bar, not under it. */
+.sticky-cta { bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px)); }
+
+/* ================= simple page header ================= */
+.page-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 20px 12px; border-bottom: 1px solid var(--mist);
+}
+.page-head h1 { font-size: 19px; }
+.page-sub { display: block; font-size: 12px; color: var(--blue); font-weight: 600; margin-top: 2px; }
+.round-btn.light { background: var(--mist); color: var(--navy); }
+
+/* ================= chat ================= */
+.avatar-sm { width: 44px; height: 44px; border-radius: 12px; font-size: 15px; }
+
+.thread-list { list-style: none; margin: 0; padding: 4px 0; }
+.thread-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 13px 20px; border-bottom: 1px solid var(--mist);
+}
+.thread-row:hover { background: var(--mist); }
+.thread-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.thread-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.thread-top { display: flex; justify-content: space-between; gap: 8px; }
+.thread-name { font-family: "Space Grotesk", Inter, sans-serif; font-weight: 700; font-size: 14.5px; }
+.thread-time { font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+.thread-job { font-size: 12px; font-weight: 600; color: var(--navy); }
+.thread-preview {
+  font-size: 12.5px; color: var(--ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.chat-body {
+  list-style: none; margin: 0; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 10px; min-height: 55vh;
+}
+.msg {
+  max-width: 78%; padding: 11px 14px; border-radius: 15px;
+  font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere;
+}
+.msg.them { background: var(--mist); color: var(--ink); border-bottom-left-radius: 4px; align-self: flex-start; }
+.msg.me { background: var(--blue); color: var(--white); border-bottom-right-radius: 4px; align-self: flex-end; }
+.msg.system {
+  align-self: center; max-width: 90%; text-align: center;
+  background: var(--mist); color: var(--ink-soft); font-size: 11.5px; padding: 7px 12px; border-radius: 20px;
+}
+.msg-time { display: block; font-size: 9.5px; opacity: 0.65; margin-top: 4px; }
+
+.composer {
+  position: sticky; bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 10px 20px 12px; background: var(--white); border-top: 1px solid var(--mist-2);
+}
+.composer input {
+  flex: 1; min-width: 0; font: inherit; font-size: 14px;
+  padding: 11px 14px; border-radius: 22px;
+  border: 1.5px solid var(--mist-2); background: var(--mist); color: var(--ink);
+}
+.composer input:focus { outline: 2px solid var(--blue); outline-offset: 1px; background: var(--white); }
+.send-btn {
+  width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+  background: var(--blue); color: var(--white); font-size: 16px;
+}
+.send-btn:disabled { opacity: 0.6; cursor: default; }
+.send-btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.composer-error { flex-basis: 100%; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
