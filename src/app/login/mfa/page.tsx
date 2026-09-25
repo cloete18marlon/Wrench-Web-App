@@ -29,7 +29,9 @@ export default async function MfaPage({ searchParams }: { searchParams: Promise<
       <div style={{ height: 18 }} />
       <MfaForm next={next} />
       <form action={logout} className="link-row">
-        Not you, or lost your phone?{" "}
+        No phone and no recovery codes? Contact Wrenchy support.
+        <br />
+        Not you?{" "}
         <button type="submit" className="link-btn">Log out</button>
       </form>
     </main>

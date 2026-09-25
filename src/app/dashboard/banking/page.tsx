@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/app/PageHeader";
 import { createServerSupabase } from "@/lib/supabase";
+import { holdFmt, holdUntil } from "@/lib/security";
 import { BankingForm } from "./BankingForm";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,8 @@ export default async function BankingPage() {
     .eq("pro_id", proProfile.id)
     .maybeSingle();
 
+  const hold = await holdUntil(supabase, user.id);
+
   const existing = account
     ? {
         accountHolder: account.account_holder,
@@ -44,7 +47,15 @@ export default async function BankingPage() {
           Wrenchy needs this to pay you out once a customer releases a job&apos;s payment.
         </p>
       </div>
-      <BankingForm existing={existing} />
+      {hold ? (
+        <p className="notice" style={{ margin: "12px 20px" }}>
+          Your banking details are locked until {holdFmt.format(hold)} because you signed in with a recovery code.
+          This stops anyone who got into your account from redirecting your payouts. If that sign-in wasn&apos;t
+          you, contact Wrenchy support now.
+        </p>
+      ) : (
+        <BankingForm existing={existing} />
+      )}
     </main>
   );
 }

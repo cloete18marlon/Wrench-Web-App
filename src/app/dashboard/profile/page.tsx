@@ -2,12 +2,21 @@ import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { initials } from "@/lib/pros";
 import { PageHeader } from "@/app/PageHeader";
+import { unusedCodeCount } from "@/lib/recovery-codes";
+import { holdFmt, holdUntil } from "@/lib/security";
 import { AvatarEditor, EmailForm, NameForm, TwoFactorSection } from "./ProfileForms";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit profile · Wrenchy" };
 
-export default async function EditProfilePage() {
+const addedFmt = new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+
+export default async function EditProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ recovered?: string }>;
+}) {
+  const { recovered } = await searchParams;
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -19,7 +28,13 @@ export default async function EditProfilePage() {
     supabase.auth.mfa.listFactors(),
   ]);
   const name = me?.full_name ?? "";
-  const twoFactorOn = !!factors?.totp.some((f) => f.status === "verified");
+  const verified = (factors?.totp ?? [])
+    .filter((f) => f.status === "verified")
+    .map((f) => ({ id: f.id, name: f.friendly_name || "Authenticator", added: addedFmt.format(new Date(f.created_at)) }));
+  const [codesLeft, hold] = await Promise.all([
+    verified.length ? unusedCodeCount(user.id) : Promise.resolve(0),
+    holdUntil(supabase, user.id),
+  ]);
 
   return (
     <main>
@@ -42,7 +57,13 @@ export default async function EditProfilePage() {
 
       <section className="card">
         <h2 className="card-title">Security</h2>
-        <TwoFactorSection enabled={twoFactorOn} />
+        {hold && (
+          <p className="notice">
+            Security hold until {holdFmt.format(hold)}: banking details can&apos;t be changed and payouts are paused
+            after a recovery-code sign-in. If that wasn&apos;t you, contact Wrenchy support now.
+          </p>
+        )}
+        <TwoFactorSection factors={verified} codesLeft={codesLeft} recovered={recovered === "1"} />
       </section>
     </main>
   );

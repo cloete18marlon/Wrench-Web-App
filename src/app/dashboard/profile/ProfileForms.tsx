@@ -6,14 +6,17 @@ import {
   changeEmail,
   confirmTwoFactor,
   disableTwoFactor,
+  regenerateRecoveryCodes,
+  removeAuthenticator,
   removeAvatar,
   startTwoFactor,
   updateName,
   uploadAvatar,
+  type ConfirmState,
   type FormState,
 } from "./actions";
 
-const empty: FormState = {};
+const empty: ConfirmState = {};
 const SIZE = 512;
 
 /**
@@ -153,20 +156,83 @@ export function EmailForm({ current, pending: pendingEmail }: { current: string;
 
 // ---------------------------------------------------------------- two-step verification
 
-export function TwoFactorSection({ enabled }: { enabled: boolean }) {
+type Factor = { id: string; name: string; added: string };
+
+function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const text = `Wrenchy recovery codes\nEach code works once. Keep them somewhere safe, away from your phone.\n\n${codes.join("\n")}\n`;
+
+  function download() {
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "wrenchy-recovery-codes.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div className="recovery" role="region" aria-label="Your recovery codes">
+      <p className="recovery-lead">
+        <b>Save your recovery codes.</b> If you lose your phone, one of these gets you back in. Each works once,
+        and this is the only time they&apos;re shown.
+      </p>
+      <ul className="code-grid">
+        {codes.map((c) => <li key={c}>{c}</li>)}
+      </ul>
+      <div className="btn-row">
+        <button type="button" className="btn btn-sm" onClick={download}>Download</button>
+        <button type="button" className="btn btn-sm" onClick={copy}>{copied ? "Copied" : "Copy"}</button>
+      </div>
+      <label className="check">
+        <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />
+        I&apos;ve saved these somewhere safe
+      </label>
+      <button type="button" className="btn btn-primary" disabled={!saved} onClick={onDone}>Done</button>
+    </div>
+  );
+}
+
+function CodeField({ id, label }: { id: string; label: string }) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <input id={id} name="code" className="code-input" inputMode="numeric" autoComplete="one-time-code" maxLength={7} required />
+    </div>
+  );
+}
+
+export function TwoFactorSection({ factors, codesLeft, recovered }: { factors: Factor[]; codesLeft: number; recovered: boolean }) {
   const router = useRouter();
+  const enabled = factors.length > 0;
   const [setup, setSetup] = useState<{ factorId: string; qr: string; secret: string } | null>(null);
+  const [codes, setCodes] = useState<string[] | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [starting, start] = useTransition();
   const [confirmState, confirmAction, confirming] = useActionState(confirmTwoFactor, empty);
+  const [regenState, regenAction, regenerating] = useActionState(regenerateRecoveryCodes, empty);
+  const [removeState, removeAction, removing] = useActionState(removeAuthenticator, empty);
   const [disableState, disableAction, disabling] = useActionState(disableTwoFactor, empty);
 
   useEffect(() => {
-    if (confirmState.success) { setSetup(null); router.refresh(); }
-  }, [confirmState.success, router]);
-  useEffect(() => {
-    if (disableState.success) router.refresh();
-  }, [disableState.success, router]);
+    if (confirmState.success) {
+      setSetup(null);
+      if (confirmState.codes) setCodes(confirmState.codes);
+      router.refresh();
+    }
+  }, [confirmState, router]);
+  useEffect(() => { if (regenState.codes) setCodes(regenState.codes); }, [regenState]);
+  useEffect(() => { if (removeState.success || disableState.success) router.refresh(); }, [removeState, disableState, router]);
 
   function begin() {
     setStartError(null);
@@ -177,62 +243,57 @@ export function TwoFactorSection({ enabled }: { enabled: boolean }) {
     });
   }
 
-  if (enabled) {
-    return (
-      <div className="stack">
-        <div className="row flush-row">
-          <div>
-            <div className="row-label">Two-step verification</div>
-            <div className="row-note">A code from your authenticator app is needed at every log in.</div>
-          </div>
-          <span className="pill ok">On</span>
-        </div>
-        {confirmState.success && <p className="success-text">{confirmState.success}</p>}
-        <details className="disclosure">
-          <summary>Turn off two-step verification</summary>
-          <form className="form flush" action={disableAction}>
-            <div className="field">
-              <label htmlFor="disable-code">Current code from your app</label>
-              <input id="disable-code" name="code" className="code-input" inputMode="numeric"
-                     autoComplete="one-time-code" maxLength={7} required />
-            </div>
-            <Feedback state={disableState} />
-            <button className="btn btn-danger" type="submit" disabled={disabling}>
-              {disabling ? "Turning off…" : "Turn off"}
-            </button>
-          </form>
-        </details>
-      </div>
-    );
+  // Codes on screen take over the section until they're acknowledged.
+  if (codes) {
+    return <RecoveryCodes codes={codes} onDone={() => { setCodes(null); router.refresh(); }} />;
   }
 
   if (setup) {
     return (
       <div className="stack">
         <ol className="steps">
-          <li>Open an authenticator app such as Google Authenticator, Microsoft Authenticator or 1Password.</li>
+          <li>Open an authenticator app such as Google Authenticator, Microsoft Authenticator or 1Password{enabled ? " on your backup device" : ""}.</li>
           <li>Scan this code, or enter the key below by hand.</li>
         </ol>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={setup.qr} alt="QR code for your authenticator app" className="qr" width={180} height={180} />
-        <p className="hint">
-          Key: <code className="secret">{setup.secret.match(/.{1,4}/g)?.join(" ")}</code>
-        </p>
+        <p className="hint">Key: <code className="secret">{setup.secret.match(/.{1,4}/g)?.join(" ")}</code></p>
         <form className="form flush" action={confirmAction}>
           <input type="hidden" name="factorId" value={setup.factorId} />
-          <div className="field">
-            <label htmlFor="setup-code">Then enter the 6-digit code it shows</label>
-            <input id="setup-code" name="code" className="code-input" inputMode="numeric"
-                   autoComplete="one-time-code" maxLength={7} required autoFocus />
-          </div>
+          <CodeField id="setup-code" label="Then enter the 6-digit code it shows" />
           <Feedback state={confirmState} />
           <div className="btn-row">
             <button className="btn btn-primary" type="submit" disabled={confirming}>
-              {confirming ? "Checking…" : "Turn on"}
+              {confirming ? "Checking…" : enabled ? "Add authenticator" : "Turn on"}
             </button>
             <button className="btn" type="button" onClick={() => setSetup(null)}>Cancel</button>
           </div>
         </form>
+      </div>
+    );
+  }
+
+  if (!enabled) {
+    return (
+      <div className="stack">
+        {recovered && (
+          <p className="notice">
+            You signed in with a recovery code, so your old authenticator was removed and other devices were
+            signed out. Set up two-step verification again below.
+          </p>
+        )}
+        <div className="row flush-row">
+          <div>
+            <div className="row-label">Two-step verification</div>
+            <div className="row-note">Protect your account and payments with a code from your phone.</div>
+          </div>
+          <span className="pill warn">Off</span>
+        </div>
+        {disableState.success && <p className="success-text">{disableState.success}</p>}
+        {startError && <p className="error-text">{startError}</p>}
+        <button className="btn btn-primary" type="button" onClick={begin} disabled={starting}>
+          {starting ? "Starting…" : "Set up two-step verification"}
+        </button>
       </div>
     );
   }
@@ -242,15 +303,71 @@ export function TwoFactorSection({ enabled }: { enabled: boolean }) {
       <div className="row flush-row">
         <div>
           <div className="row-label">Two-step verification</div>
-          <div className="row-note">Protect your account and payments with a code from your phone.</div>
+          <div className="row-note">A code from your authenticator app is needed at every log in.</div>
         </div>
-        <span className="pill warn">Off</span>
+        <span className="pill ok">On</span>
       </div>
-      {disableState.success && <p className="success-text">{disableState.success}</p>}
-      {startError && <p className="error-text">{startError}</p>}
-      <button className="btn btn-primary" type="button" onClick={begin} disabled={starting}>
-        {starting ? "Starting…" : "Set up two-step verification"}
-      </button>
+      {confirmState.success && !confirmState.codes && <p className="success-text">{confirmState.success}</p>}
+
+      <div>
+        <div className="row-label small">Your authenticators</div>
+        <ul className="factor-list">
+          {factors.map((f) => (
+            <li key={f.id}>
+              <span>
+                <b>{f.name}</b>
+                <span className="row-note">Added {f.added}</span>
+              </span>
+              {factors.length > 1 && (
+                <details className="disclosure inline">
+                  <summary>Remove</summary>
+                  <form className="form flush" action={removeAction}>
+                    <input type="hidden" name="factorId" value={f.id} />
+                    <CodeField id={`rm-${f.id}`} label="Current code from any authenticator" />
+                    <button className="btn btn-sm" type="submit" disabled={removing}>{removing ? "Removing…" : "Remove"}</button>
+                  </form>
+                </details>
+              )}
+            </li>
+          ))}
+        </ul>
+        <Feedback state={removeState} />
+        {factors.length < 3 && (
+          <>
+            {startError && <p className="error-text">{startError}</p>}
+            <button className="btn btn-sm" type="button" onClick={begin} disabled={starting}>
+              {starting ? "Starting…" : "Add a backup authenticator"}
+            </button>
+            <p className="hint" style={{ marginTop: 6 }}>A second device, such as a tablet or password manager, means a lost phone doesn&apos;t lock you out.</p>
+          </>
+        )}
+      </div>
+
+      <div className="row flush-row">
+        <div>
+          <div className="row-label small">Recovery codes</div>
+          <div className="row-note">{codesLeft} of 10 left. Each gets you in once if you lose every authenticator.</div>
+        </div>
+        <span className={`pill ${codesLeft > 3 ? "ok" : codesLeft > 0 ? "warn" : "fail"}`}>{codesLeft}</span>
+      </div>
+      <details className="disclosure">
+        <summary>Create new recovery codes</summary>
+        <form className="form flush" action={regenAction}>
+          <p className="hint">Your current codes stop working as soon as new ones are created.</p>
+          <CodeField id="regen-code" label="Current code from your app" />
+          <Feedback state={regenState} />
+          <button className="btn btn-sm" type="submit" disabled={regenerating}>{regenerating ? "Creating…" : "Create new codes"}</button>
+        </form>
+      </details>
+
+      <details className="disclosure">
+        <summary>Turn off two-step verification</summary>
+        <form className="form flush" action={disableAction}>
+          <CodeField id="disable-code" label="Current code from your app" />
+          <Feedback state={disableState} />
+          <button className="btn btn-danger" type="submit" disabled={disabling}>{disabling ? "Turning off…" : "Turn off"}</button>
+        </form>
+      </details>
     </div>
   );
 }

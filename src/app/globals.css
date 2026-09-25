@@ -560,6 +560,33 @@ img.avatar { display: block; object-fit: cover; background: var(--mist-2); paddi
 .admin-card b { display: block; font-size: 14px; }
 .logout-row { padding: 18px 20px 26px; text-align: center; }
 
+/* ================= two-step recovery ================= */
+.notice {
+  margin: 0; padding: 11px 13px; border-radius: 12px;
+  background: var(--amber-bg); color: var(--ink); font-size: 12.5px; line-height: 1.5;
+}
+.row-label.small { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; }
+.factor-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.factor-list li {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid var(--mist);
+}
+.factor-list li > span { display: flex; flex-direction: column; font-size: 13px; }
+.disclosure.inline summary { font-size: 12.5px; color: var(--red); }
+.disclosure.inline[open] { flex-basis: 100%; }
+.link-btn.center { display: block; margin: 4px auto 0; text-align: center; }
+
+.recovery { display: flex; flex-direction: column; gap: 12px; }
+.recovery-lead { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink); }
+.code-grid {
+  list-style: none; margin: 0; padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+  background: var(--mist); border-radius: 12px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 14px; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--navy);
+}
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--blue); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

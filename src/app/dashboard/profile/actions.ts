@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { siteUrl } from "@/lib/site";
+import { cleanCode, verifyAgainstAnyFactor } from "@/lib/mfa";
+import { deleteRecoveryCodes, issueRecoveryCodes, unusedCodeCount } from "@/lib/recovery-codes";
 
 async function requireUser() {
   const supabase = await createServerSupabase();
@@ -112,10 +114,20 @@ export async function changeEmail(_prev: FormState, formData: FormData): Promise
 
 // ---------------------------------------------------------------- two-step verification
 
+const MAX_AUTHENTICATORS = 3;
+
+async function requireVerifiedSession() {
+  const ctx = await requireUser();
+  const { data: aal } = await ctx.supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  // With an authenticator on the account, changes here need a code-verified session.
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") redirect("/login/mfa?next=/dashboard/profile");
+  return ctx;
+}
+
 export type EnrollResult = { error?: string; factorId?: string; qr?: string; secret?: string };
 
 export async function startTwoFactor(): Promise<EnrollResult> {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireVerifiedSession();
 
   // Clear out any set-up that was started and abandoned, so it can't block a new one.
   const { data: factors } = await supabase.auth.mfa.listFactors();
@@ -124,45 +136,92 @@ export async function startTwoFactor(): Promise<EnrollResult> {
       await supabase.auth.mfa.unenroll({ factorId: f.id });
     }
   }
-  if (factors?.totp.some((f) => f.status === "verified")) return { error: "Two-step verification is already on." };
+  const verified = (factors?.totp ?? []).filter((f) => f.status === "verified").length;
+  if (verified >= MAX_AUTHENTICATORS) return { error: `You can have up to ${MAX_AUTHENTICATORS} authenticators.` };
 
   const { data, error } = await supabase.auth.mfa.enroll({
     factorType: "totp",
     issuer: "Wrenchy",
-    friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
+    // Must be unique per account; the date and time also help people tell devices apart.
+    friendlyName: verified === 0 ? "Authenticator" : `Backup authenticator ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
   });
   if (error || !data) return { error: "Couldn't start set-up. Try again." };
   return { factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret };
 }
 
-export async function confirmTwoFactor(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase } = await requireUser();
+export type ConfirmState = FormState & { codes?: string[] };
+
+export async function confirmTwoFactor(_prev: ConfirmState, formData: FormData): Promise<ConfirmState> {
+  const { supabase, user } = await requireUser();
   const factorId = String(formData.get("factorId") ?? "");
-  const code = String(formData.get("code") ?? "").replace(/\s/g, "");
+  const code = cleanCode(formData.get("code"));
   if (!/^\d{6}$/.test(code)) return { error: "Enter the 6-digit code from your app." };
 
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
   if (error) return { error: "That code didn't match. Use the one showing in your app right now." };
+
+  // First authenticator on the account: issue recovery codes now, while the
+  // person is right here to save them.
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const verified = (factors?.totp ?? []).filter((f) => f.status === "verified").length;
+  if (verified === 1 || (await unusedCodeCount(user.id)) === 0) {
+    const codes = await issueRecoveryCodes(user.id);
+    refresh();
+    return { success: "Two-step verification is on.", codes };
+  }
   refresh();
-  return { success: "Two-step verification is on. You'll need a code from your app each time you log in." };
+  return { success: "Backup authenticator added. A code from either device now works." };
+}
+
+export async function regenerateRecoveryCodes(_prev: ConfirmState, formData: FormData): Promise<ConfirmState> {
+  const { supabase, user } = await requireVerifiedSession();
+  const code = cleanCode(formData.get("code"));
+  if (!/^\d{6}$/.test(code)) return { error: "Enter the 6-digit code from your app to confirm." };
+  const ok = await verifyAgainstAnyFactor(supabase, code);
+  if (!ok) return { error: "That code didn't match. Use the one showing in your app right now." };
+
+  const codes = await issueRecoveryCodes(user.id);
+  refresh();
+  return { success: "New recovery codes created. Your old codes no longer work.", codes };
+}
+
+export async function removeAuthenticator(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { supabase } = await requireVerifiedSession();
+  const factorId = String(formData.get("factorId") ?? "");
+  const code = cleanCode(formData.get("code"));
+  if (!/^\d{6}$/.test(code)) return { error: "Enter a current code to confirm." };
+
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const verified = (factors?.totp ?? []).filter((f) => f.status === "verified");
+  if (verified.length <= 1) return { error: "This is your only authenticator. Turn off two-step verification instead." };
+  if (!verified.some((f) => f.id === factorId)) return { error: "That authenticator no longer exists." };
+
+  if (!(await verifyAgainstAnyFactor(supabase, code))) {
+    return { error: "That code didn't match. Use the one showing in your app right now." };
+  }
+  const { error } = await supabase.auth.mfa.unenroll({ factorId });
+  if (error) return { error: "Couldn't remove it. Try again." };
+  refresh();
+  return { success: "Authenticator removed." };
 }
 
 export async function disableTwoFactor(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { supabase } = await requireUser();
-  const code = String(formData.get("code") ?? "").replace(/\s/g, "");
+  const { supabase, user } = await requireVerifiedSession();
+  const code = cleanCode(formData.get("code"));
   if (!/^\d{6}$/.test(code)) return { error: "Enter the 6-digit code from your app to confirm." };
-
-  const { data: factors } = await supabase.auth.mfa.listFactors();
-  const factor = factors?.totp.find((f) => f.status === "verified");
-  if (!factor) return { success: "Two-step verification is already off." };
 
   // Ask for a fresh code even though the session is already verified: turning
   // off protection should need the phone, not just an unattended open tab.
-  const { error: verifyError } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
-  if (verifyError) return { error: "That code didn't match. Use the one showing in your app right now." };
+  const ok = await verifyAgainstAnyFactor(supabase, code);
+  if (ok === null) return { success: "Two-step verification is already off." };
+  if (!ok) return { error: "That code didn't match. Use the one showing in your app right now." };
 
-  const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
-  if (error) return { error: "Couldn't turn it off. Try again." };
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  for (const f of factors?.all ?? []) {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: f.id });
+    if (error) return { error: "Couldn't turn it off completely. Try again." };
+  }
+  await deleteRecoveryCodes(user.id);
   refresh();
-  return { success: "Two-step verification is off." };
+  return { success: "Two-step verification is off, and your recovery codes have been deleted." };
 }

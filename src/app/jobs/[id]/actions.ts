@@ -7,6 +7,7 @@ import { createAdminSupabase } from "@/lib/supabase-admin";
 import { createCheckout, createPayout, type PayoutBankDetails } from "@/lib/peach";
 import { splitCommission } from "@/lib/money";
 import { siteUrl } from "@/lib/site";
+import { holdFmt, holdUntil } from "@/lib/security";
 
 export type QuoteState = { error?: string };
 
@@ -182,6 +183,19 @@ export async function releasePayment(_prevState: PaymentState, formData: FormDat
     .maybeSingle();
   if (paymentLookupError) return { error: "Something went wrong loading the payment — try again." };
   if (!payment) return { error: "No held payment found for this job." };
+
+  // Payouts pause for 48 hours after the pro recovers their account with a
+  // recovery code. The database blocks it regardless (payouts trigger); this
+  // gives the customer a clear reason instead of a failure.
+  const { data: proOwner } = await admin.from("pro_profiles").select("user_id").eq("id", job.pro_id).maybeSingle();
+  if (proOwner) {
+    const hold = await holdUntil(admin, proOwner.user_id);
+    if (hold) {
+      return {
+        error: `This pro's account is in a security hold until ${holdFmt.format(hold)}, so payment can't be released yet. Your money stays safe in the Vault.`,
+      };
+    }
+  }
 
   // Bank details live in an owner-only table; only the service role reads
   // them on someone else's behalf, and only here, at the moment of payout.
