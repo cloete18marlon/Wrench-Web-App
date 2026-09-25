@@ -22,7 +22,13 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Incorrect email or password." };
   }
 
-  redirect(next.startsWith("/") ? next : "/dashboard");
+  redirect(isSafeNext(next) ? next : "/dashboard");
+}
+
+// Only same-site paths. "//evil.com" and "/\evil.com" start with "/" but
+// browsers treat them as links to another site.
+function isSafeNext(next: string) {
+  return next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\");
 }
 
 export async function logout() {

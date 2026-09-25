@@ -18,7 +18,7 @@ export default async function AdminPage() {
   const [{ data: applicants }, { data: proRoles }] = await Promise.all([
     supabase
       .from("pro_profiles")
-      .select("id, user_id, company_name, bio, verification_tier, users(full_name), pro_trades(trades(name))")
+      .select("id, user_id, display_name, company_name, bio, verification_tier, pro_trades(trades(name))")
       .order("created_at", { ascending: true }),
     supabase.from("user_roles").select("user_id").eq("role", "pro"),
   ]);
@@ -37,7 +37,7 @@ export default async function AdminPage() {
           const trades = (app.pro_trades as unknown as { trades: { name: string } | null }[]) ?? [];
           return (
             <div className="card" key={app.id}>
-              <h3>{(app.users as unknown as { full_name: string } | null)?.full_name ?? "Applicant"}</h3>
+              <h3>{app.display_name ?? "Applicant"}</h3>
               {app.company_name && <p className="row-note">{app.company_name}</p>}
               <p style={{ marginTop: 6 }}>{app.bio || "No bio provided."}</p>
               <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 6 }}>

@@ -30,10 +30,15 @@ export async function applyAsPro(_prevState: ApplyState, formData: FormData): Pr
     return { error: "Service radius must be greater than 0." };
   }
 
+  // The name shown in the public directory. Guests can't read public.users,
+  // so it is copied onto the profile at application time.
+  const { data: me } = await supabase.from("users").select("full_name").eq("id", user.id).maybeSingle();
+
   const { data: proProfile, error: profileError } = await supabase
     .from("pro_profiles")
     .insert({
       user_id: user.id,
+      display_name: me?.full_name ?? null,
       company_name: companyName || null,
       bio: bio || null,
       hourly_rate: hourlyRate,

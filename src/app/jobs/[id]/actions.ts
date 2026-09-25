@@ -183,14 +183,23 @@ export async function releasePayment(_prevState: PaymentState, formData: FormDat
   if (paymentLookupError) return { error: "Something went wrong loading the payment — try again." };
   if (!payment) return { error: "No held payment found for this job." };
 
-  const { data: proProfile, error: proProfileError } = await admin
-    .from("pro_profiles")
-    .select("payout_details")
-    .eq("id", job.pro_id)
+  // Bank details live in an owner-only table; only the service role reads
+  // them on someone else's behalf, and only here, at the moment of payout.
+  const { data: account, error: accountError } = await admin
+    .from("pro_payout_accounts")
+    .select("account_holder, bank_name, account_number, branch_code")
+    .eq("pro_id", job.pro_id)
     .maybeSingle();
-  if (proProfileError) return { error: "Something went wrong loading the pro's profile — try again." };
+  if (accountError) return { error: "Something went wrong loading the pro's banking details — try again." };
 
-  const bankDetails = proProfile?.payout_details as PayoutBankDetails | null;
+  const bankDetails: PayoutBankDetails | null = account
+    ? {
+        accountHolder: account.account_holder,
+        bankName: account.bank_name,
+        accountNumber: account.account_number,
+        branchCode: account.branch_code,
+      }
+    : null;
   if (!bankDetails?.accountNumber) {
     return { error: "This pro hasn't added banking details yet — ask them to add them before releasing." };
   }
