@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/app/PageHeader";
 import { createServerSupabase } from "@/lib/supabase";
 import { approvePro } from "./actions";
 
@@ -27,9 +28,7 @@ export default async function AdminPage() {
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px" }}>
-        Pro applications
-      </div>
+      <PageHeader title="Pro applications" back="/dashboard" />
 
       {applicants && applicants.length > 0 ? (
         applicants.map((app) => {

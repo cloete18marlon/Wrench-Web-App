@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { createServerSupabase } from "@/lib/supabase";
 import { BottomNav } from "./BottomNav";
+import { NavHistory } from "./NavHistory";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div className="shell">
           {children}
           <BottomNav signedIn={signedIn} />
+          <NavHistory />
         </div>
       </body>
     </html>

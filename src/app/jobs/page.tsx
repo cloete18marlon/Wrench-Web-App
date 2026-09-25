@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/app/PageHeader";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 
@@ -43,12 +44,16 @@ export default async function JobsPage() {
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px", display: "flex", justifyContent: "space-between" }}>
-        <span>Jobs you posted</span>
-        <Link href="/jobs/new" style={{ color: "var(--blue)" }}>
-          + Post a job
-        </Link>
-      </div>
+      <PageHeader
+        title="My jobs"
+        back="/dashboard"
+        action={
+          <Link href="/jobs/new" className="btn btn-primary btn-sm">
+            Post a job
+          </Link>
+        }
+      />
+      <div className="label">Jobs you posted</div>
 
       {myJobs && myJobs.length > 0 ? (
         myJobs.map((job) => (

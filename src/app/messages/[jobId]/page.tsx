@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackButton } from "@/app/NavHistory";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { AutoRefresh, Composer } from "./Composer";
@@ -35,7 +36,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ jobId: 
     return (
       <main>
         <header className="page-head">
-          <Link href="/messages" className="round-btn light" aria-label="Back to chat">←</Link>
+          <BackButton fallback="/messages" />
           <h1>{job.title}</h1>
         </header>
         <div className="empty">
@@ -63,7 +64,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ jobId: 
   return (
     <main className="thread-page">
       <header className="page-head">
-        <Link href="/messages" className="round-btn light" aria-label="Back to chat">←</Link>
+        <BackButton fallback="/messages" />
         <div>
           <h1>{other}</h1>
           <Link href={`/jobs/${job.id}`} className="page-sub">{job.title}</Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { BackButton } from "@/app/NavHistory";
 import Link from "next/link";
 import { Logo } from "../logo";
 import { signup, type SignupState } from "./actions";
@@ -13,6 +14,9 @@ export function SignupForm({ next }: { next: string }) {
   return (
     <main>
       <section className="hero hero-compact">
+        <div className="hero-back">
+          <BackButton tone="dark" fallback="/" />
+        </div>
         <Logo size={48} />
         <h1 className="brand" style={{ fontSize: 26 }}>
           wrench<span className="y">y</span>

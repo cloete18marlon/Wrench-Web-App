@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BackButton } from "@/app/NavHistory";
+import { ProAvatar } from "@/app/ProAvatar";
 import { createServerSupabase } from "@/lib/supabase";
 import { TIER_BADGE, VERIFIED_MIN_TIER } from "@/lib/badges";
 import {
@@ -49,9 +51,7 @@ export default async function DirectoryPage({
     <main>
       <header className="search-header">
         <div className="search-top">
-          <Link href="/" className="round-btn" aria-label="Back to home">
-            ←
-          </Link>
+          <BackButton tone="dark" fallback="/" />
           <h1 className="search-title">Find a pro</h1>
           {user ? (
             <Link href="/dashboard" className="auth-pill signed-in">
@@ -220,9 +220,7 @@ function ProCardView({ pro }: { pro: ProCard }) {
   const trade = pro.trades[0]?.name;
   return (
     <Link href={`/pros/${pro.id}`} className="pro-card">
-      <span className="avatar" aria-hidden="true">
-        {initials(pro.name)}
-      </span>
+      <ProAvatar url={pro.avatarUrl} name={pro.name} initials={initials(pro.name)} />
       <span className="pro-info">
         <span className="pro-top">
           <span className="pro-name">{pro.name}</span>

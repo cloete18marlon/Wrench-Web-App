@@ -1,4 +1,5 @@
 import { Logo } from "../logo";
+import { BackButton } from "@/app/NavHistory";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({
@@ -11,6 +12,9 @@ export default async function LoginPage({
   return (
     <main>
       <section className="hero hero-compact">
+        <div className="hero-back">
+          <BackButton tone="dark" fallback="/" />
+        </div>
         <Logo size={48} />
         <h1 className="brand" style={{ fontSize: 26 }}>
           wrench<span className="y">y</span>

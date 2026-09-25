@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase";
+import { PageHeader } from "@/app/PageHeader";
 import { PostJobForm } from "./PostJobForm";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +15,7 @@ export default async function NewJobPage({
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px" }}>
-        Post a job
-      </div>
+      <PageHeader title="Post a job" back="/jobs" />
       <PostJobForm
         trades={trades ?? []}
         defaultTradeId={trades?.some((t) => t.id === trade) ? trade : undefined}

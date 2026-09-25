@@ -23,6 +23,11 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Incorrect email or password." };
   }
 
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+    redirect(`/login/mfa?next=${encodeURIComponent(safeNext(next))}`);
+  }
+
   redirect(safeNext(next));
 }
 

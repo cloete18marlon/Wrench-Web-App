@@ -16,6 +16,7 @@ export type ProCard = {
   id: string;
   name: string;
   company: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   hourlyRate: number | null;
   tier: number;
@@ -64,13 +65,14 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
 // Only columns granted to anon (see migration 20260925). Selecting a column
 // that isn't granted - location, for instance - fails the whole query.
 const CARD_SELECT =
-  "id, display_name, company_name, bio, hourly_rate, verification_tier, " +
+  "id, display_name, company_name, avatar_url, bio, hourly_rate, verification_tier, " +
   "pro_trades(trades(id, name)), pro_skills(skills(name)), reviews(rating)";
 
 type Row = {
   id: string;
   display_name: string | null;
   company_name: string | null;
+  avatar_url: string | null;
   bio: string | null;
   hourly_rate: number | string | null;
   verification_tier: number;
@@ -85,6 +87,7 @@ function toCard(r: Row): ProCard {
     id: r.id,
     name: r.display_name || r.company_name || "Wrenchy pro",
     company: r.company_name,
+    avatarUrl: r.avatar_url,
     bio: r.bio,
     hourlyRate: r.hourly_rate === null ? null : Number(r.hourly_rate),
     tier: r.verification_tier,

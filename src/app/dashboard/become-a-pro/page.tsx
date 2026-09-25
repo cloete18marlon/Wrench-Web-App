@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/app/PageHeader";
 import { createServerSupabase } from "@/lib/supabase";
 import { BecomeProForm } from "./BecomeProForm";
 
@@ -20,9 +21,7 @@ export default async function BecomeAProPage() {
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px" }}>
-        Apply as a pro
-      </div>
+      <PageHeader title="Apply as a pro" back="/dashboard" />
       <div style={{ padding: "0 20px" }}>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.55 }}>
           Submitting this doesn&apos;t make you a pro yet — Wrenchy verifies applicants before

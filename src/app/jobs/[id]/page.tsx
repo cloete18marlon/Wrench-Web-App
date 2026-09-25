@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/app/PageHeader";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { QuoteForm } from "./QuoteForm";
@@ -66,9 +67,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px" }}>
-        Job
-      </div>
+      <PageHeader title="Job details" back="/jobs" />
       <div className="card">
         <h3>{job.title}</h3>
         <p className="row-note">{(job.trades as unknown as { name: string } | null)?.name}</p>

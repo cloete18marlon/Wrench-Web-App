@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/app/PageHeader";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase";
 import { initials } from "@/lib/pros";
@@ -58,9 +59,7 @@ export default async function MessagesPage() {
 
   return (
     <main>
-      <header className="page-head">
-        <h1>Chat</h1>
-      </header>
+      <PageHeader title="Chat" back="/" />
 
       {threads.length === 0 ? (
         <div className="empty">

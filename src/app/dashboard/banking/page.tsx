@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/app/PageHeader";
 import { createServerSupabase } from "@/lib/supabase";
 import { BankingForm } from "./BankingForm";
 
@@ -37,9 +38,7 @@ export default async function BankingPage() {
 
   return (
     <main>
-      <div className="label" style={{ padding: "22px 20px 8px" }}>
-        Banking details
-      </div>
+      <PageHeader title="Banking details" back="/dashboard" />
       <div style={{ padding: "0 20px" }}>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.55 }}>
           Wrenchy needs this to pay you out once a customer releases a job&apos;s payment.
