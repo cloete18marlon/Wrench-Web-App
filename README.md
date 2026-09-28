@@ -65,14 +65,18 @@ policies.
 - Email confirmation is required before login works — make sure "Confirm
   email" is turned on under Authentication → Providers → Email in the Supabase
   dashboard, for both the staging and production projects.
-- Under Authentication → URL Configuration, add `<your-site-url>/auth/callback`
+- Under Authentication → URL Configuration, add `https://<your-domain>/auth/callback`
   to Redirect URLs (and `http://localhost:3000/auth/callback` for local dev),
   or the confirmation link in signup emails will fail.
 - **Password reset.** Supabase stores the password as a bcrypt hash in
   `auth.users`; no Wrenchy table holds it. Two dashboard settings per project
   (staging and production), under Authentication:
-  1. URL Configuration → Redirect URLs: add `<your-site-url>/auth/confirm`
-     (and `http://localhost:3000/auth/confirm`).
+  1. URL Configuration: set Site URL to the deployed address (e.g.
+     `https://wrenchy-staging.netlify.app`) — the email template's
+     `{{ .SiteURL }}` comes from it. Redirect URLs must allow
+     `https://wrenchy-staging.netlify.app/auth/confirm`; a wildcard entry like
+     `https://wrenchy-staging.netlify.app/**` already covers it. Add
+     `http://localhost:3000/**` for local dev.
   2. Emails → Templates → Reset Password: change the link to
      ```
      {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
