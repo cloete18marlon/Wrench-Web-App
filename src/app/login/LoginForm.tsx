@@ -27,6 +27,9 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
             autoComplete="current-password"
             required
           />
+          <Link href="/forgot-password" className="hint" style={{ alignSelf: "flex-end", color: "var(--blue)", fontWeight: 600 }}>
+            Forgot password?
+          </Link>
         </div>
 
         {state.error && <p className="error-text">{state.error}</p>}
