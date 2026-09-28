@@ -3,7 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 
 // Everything else requires a signed-in session. Keep this list to routes that
 // must work before/without auth: the marketing landing page, the auth forms
-// themselves, the email-confirmation/OAuth callback, the ops status page
+// themselves (including the forgot-password request form), the
+// email-confirmation/OAuth callback and the token_hash link handler, the ops status page
 // (useful for diagnosing a broken deploy when login itself might be at fault),
 // and the Peach Payments webhooks — Peach calls these server-to-server with
 // no session cookie; authenticity is checked via HMAC signature inside the
@@ -12,7 +13,9 @@ const PUBLIC_PATHS = new Set([
   "/",
   "/login",
   "/signup",
+  "/forgot-password",
   "/auth/callback",
+  "/auth/confirm",
   "/status",
   "/api/webhooks/peach/checkout",
   "/api/webhooks/peach/payout",
@@ -24,6 +27,10 @@ const PUBLIC_PATHS = new Set([
 const PUBLIC_PREFIXES = ["/pros"];
 
 const MFA_PATH = "/login/mfa";
+
+// Deliberately NOT public: it needs the recovery session from the emailed
+// link, and it must pass the two-step gate below like any signed-in page.
+const RESET_PATH = "/reset-password";
 
 function isPublicPath(pathname: string) {
   return (
@@ -63,6 +70,14 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isPublic = isPublicPath(pathname);
+
+  // An expired or already-used reset link leaves no session. Send them to
+  // request a new link rather than to a login form they can't complete.
+  if (!user && pathname === RESET_PATH) {
+    const forgotUrl = new URL("/forgot-password", request.url);
+    forgotUrl.searchParams.set("error", "Your reset link has expired or was already used. Request a new one.");
+    return NextResponse.redirect(forgotUrl);
+  }
 
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);

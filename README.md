@@ -18,7 +18,10 @@ Open http://localhost:3000
 |---|---|
 | `/` | Landing. Trades read live from the `trades` table. |
 | `/signup` | Email + password signup. Sends a confirmation email; no session until it's clicked. |
-| `/login` | Email + password login. |
+| `/login` | Email + password login. Links to `/forgot-password`. |
+| `/forgot-password` | Asks for an email and sends a reset link. Same answer whether or not the account exists. |
+| `/auth/confirm` | Verifies `token_hash` email links (reset, and signup once its template is switched). Works on any device. |
+| `/reset-password` | Choose a new password. Only works within an hour of clicking a reset link (the session's `amr` must hold a fresh `recovery` entry), and passes the two-step gate first. Saving signs the user out everywhere. |
 | `/auth/callback` | Exchanges the signup-confirmation link's code for a session. Also where OAuth will land once a provider is added. |
 | `/dashboard` | Signed-in home. Shows role(s) and, for non-pros, a link to apply. |
 | `/dashboard/become-a-pro` | Pro application form (trade, bio, rate, radius). Writes `pro_profiles` + `pro_trades`; does **not** grant the `pro` role. |
@@ -65,6 +68,21 @@ policies.
 - Under Authentication → URL Configuration, add `<your-site-url>/auth/callback`
   to Redirect URLs (and `http://localhost:3000/auth/callback` for local dev),
   or the confirmation link in signup emails will fail.
+- **Password reset.** Supabase stores the password as a bcrypt hash in
+  `auth.users`; no Wrenchy table holds it. Two dashboard settings per project
+  (staging and production), under Authentication:
+  1. URL Configuration → Redirect URLs: add `<your-site-url>/auth/confirm`
+     (and `http://localhost:3000/auth/confirm`).
+  2. Emails → Templates → Reset Password: change the link to
+     ```
+     {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password
+     ```
+     Without this change the default template still works, but only when the
+     link is opened in the same browser that requested it (PKCE via
+     `/auth/callback`).
+  Supabase's built-in email sender only delivers to project team members and
+  is heavily rate limited, so real users need custom SMTP (Resend/Postmark,
+  Week 12) before this reaches them.
 - Google OAuth is not wired up yet. `/auth/callback` is already written to
   handle it — enabling it later is just adding a "Continue with Google"
   button that calls `signInWithOAuth`, once a Google Cloud OAuth client is
