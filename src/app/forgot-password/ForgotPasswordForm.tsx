@@ -12,7 +12,8 @@ export function ForgotPasswordForm({ initialError }: { initialError?: string }) 
       <div className="form">
         <p className="notice" role="status">
           If an account exists for <b>{state.email}</b>, we&apos;ve sent a link to reset your password. It works
-          for one hour. Check your spam folder if it hasn&apos;t arrived in a few minutes.
+          for one hour. Check your spam folder too. If nothing arrives within 10 minutes, come back and request
+          another.
         </p>
         <p className="hint">Open the link on this device if you can — it&apos;s the most reliable way.</p>
         <p className="link-row">
