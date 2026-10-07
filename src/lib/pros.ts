@@ -1,7 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { VERIFIED_MIN_TIER } from "./badges";
 
+/**
+ * One icon per trade, keyed by trade name (must match trades.name exactly).
+ * Every icon is unique, and all are from Emoji 13.0 (2020) or earlier so they
+ * render on older Android and Windows. A trade missing from this map falls
+ * back to 🔧, so add new trades here when they're added to the database.
+ */
 export const TRADE_EMOJI: Record<string, string> = {
+  // Original eight (unchanged)
   Painting: "🎨",
   Electrical: "⚡",
   Plumbing: "🚰",
@@ -10,6 +17,80 @@ export const TRADE_EMOJI: Record<string, string> = {
   Cleaning: "🧹",
   Tiling: "🧱",
   Roofing: "🏠",
+
+  // Building & Structural
+  "Asbestos Removal": "☣️",
+  "Bricklaying & Building": "🏗️",
+  "Ceilings & Drywall": "🪜",
+  "Concrete & Screeding": "🪨",
+  "Demolition & Site Clearing": "🚜",
+  "Plastering & Skimming": "🪣",
+  "Steel Fabrication & Welding": "🔩",
+  "Waterproofing & Damp-proofing": "☔",
+
+  // Electrical & Energy
+  "Appliance Repair": "🔌",
+  "CCTV, Alarms & Access Control": "📹",
+  "Electric Fencing": "🚨",
+  "Gate Motors & Garage Doors": "🚪",
+  "Generator Installation & Servicing": "⛽",
+  "Lighting Design & Installation": "💡",
+  "Solar & Inverter Installation": "☀️",
+  "TV, Satellite & Wi-Fi Installation": "📡",
+
+  // Plumbing, Water & Gas
+  "Boreholes, Pumps & Water Tanks": "💧",
+  "Drain Unblocking & Sewer Work": "🪠",
+  "Gas Installation": "🔥",
+  "Geyser Installation & Repair": "♨️",
+  Irrigation: "💦",
+  "Water Filtration & Grey-water Systems": "♻️",
+
+  // Finishing & Interiors
+  "Blinds, Curtains & Shutters": "🪟",
+  Flooring: "🪵",
+  "Glazing & Shower Doors": "🪞",
+  "Kitchen & Cupboard Installation": "🍳",
+  Shopfitting: "🏪",
+  Upholstery: "🛋️",
+  Wallpapering: "📜",
+
+  // Outdoor & Property
+  "Burglar Bars & Security Gates": "🛡️",
+  "Carports & Shade Ports": "🚗",
+  "Decking & Pergolas": "🏡",
+  Fencing: "🚧",
+  "Gutters & Fascias": "🌧️",
+  Paving: "🛣️",
+  "Pool Building & Maintenance": "🏊",
+  "Pressure Washing": "🚿",
+  "Tree Felling & Tree Surgery": "🌳",
+
+  // Cleaning & Hygiene
+  "Carpet & Upholstery Cleaning": "🧽",
+  "Mould Remediation": "🦠",
+  "Pest Control & Fumigation": "🐜",
+  "Rubble & Junk Removal": "🗑️",
+  "Window Cleaning": "✨",
+
+  // Mechanical & Specialist
+  "Air Conditioning & Refrigeration": "❄️",
+  "Fire Protection": "🧯",
+  Handyman: "🧰",
+  "Lifts & Escalators": "🛗",
+  Locksmiths: "🔑",
+
+  // Professional & Pre-build
+  "Architectural Drafting": "📐",
+  "Home Inspections & Compliance Certificates": "📋",
+  "Interior Design": "🪴",
+  "Quantity Surveying": "🧮",
+  "Structural Engineering": "🏛️",
+
+  // Moving & Assembly
+  "Flat-pack Assembly": "📦",
+  "Furniture Removals": "🚚",
+  "Picture Hanging & Mounting": "🖼️",
 };
 
 export type ProCard = {
