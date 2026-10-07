@@ -10,14 +10,25 @@ export const PASSWORD_MIN = 8; // DL-013: project minimum, set in both environme
 export const PASSWORD_MAX = 72; // bcrypt ignores bytes beyond 72; Supabase rejects them
 
 /**
- * True only when the current session was created by a password-reset link
+ * Sign-in methods that prove the person controls the account's email inbox.
+ * A reset link is recorded by Supabase as "otp" (confirmed on staging,
+ * 8 Oct 2026: a session from a reset link carried amr method "otp", not
+ * "recovery"). "recovery" and "magiclink" are kept in case a future Supabase
+ * version labels it differently. All of them prove the same thing as the
+ * reset link: whoever is here just opened an email sent to this address.
+ */
+const INBOX_PROOF_METHODS = new Set(["otp", "recovery", "magiclink"]);
+
+/**
+ * True only when the current session was created from an emailed link
  * within the last hour.
  *
  * Why not just "is someone signed in"? A signed-in session alone must not be
  * enough to change a password without knowing the old one: a borrowed phone
  * or an unlocked laptop would otherwise be a full account takeover. The
  * reset link proves control of the email address, and Supabase records that
- * as a "recovery" entry in the token's amr (authentication methods) claim.
+ * in the token's amr (authentication methods) claim with a timestamp. A
+ * password login is recorded as "password" and never passes this check.
  *
  * getClaims() verifies the token's signature before we read it, so the claim
  * cannot be forged by editing a cookie.
@@ -32,7 +43,7 @@ export async function hasFreshRecovery(supabase: SupabaseClient): Promise<boolea
   return amr.some(
     (entry) =>
       typeof entry === "object" &&
-      entry.method === "recovery" &&
+      INBOX_PROOF_METHODS.has(entry.method ?? "") &&
       typeof entry.timestamp === "number" &&
       entry.timestamp >= cutoff
   );
