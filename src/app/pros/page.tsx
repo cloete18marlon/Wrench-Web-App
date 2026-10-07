@@ -9,10 +9,14 @@ import {
   applyFilters,
   directoryHref,
   fetchApprovedPros,
+  fetchTradeCatalog,
   initials,
   parseFilters,
+  resolveTradeFilters,
   type ProCard,
+  type TradeCatalog,
 } from "@/lib/pros";
+import { TradeFilters } from "./TradeFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +27,16 @@ export default async function DirectoryPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const f = parseFilters(await searchParams);
   const supabase = await createServerSupabase();
 
-  const [{ data: authData }, { data: trades }] = await Promise.all([
+  const [{ data: authData }, catalog] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("trades").select("id, name").order("name"),
+    // If the catalogue can't load, the directory still works without the
+    // category and trade dropdowns rather than failing the whole page.
+    fetchTradeCatalog(supabase).catch((): TradeCatalog => ({ categories: [] })),
   ]);
   const user = authData.user;
+  const f = resolveTradeFilters(parseFilters(await searchParams), catalog);
 
   let pros: ProCard[] = [];
   let loadError: string | null = null;
@@ -40,7 +46,7 @@ export default async function DirectoryPage({
     loadError = err instanceof Error ? err.message : "unknown error";
   }
 
-  const matches = applyFilters(pros, f);
+  const matches = applyFilters(pros, f, catalog);
   const pageCount = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
   const page = Math.min(f.page, pageCount);
   const shown = matches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -71,7 +77,6 @@ export default async function DirectoryPage({
         )}
 
         <form className="search-form" action="/pros" method="get" role="search">
-          {f.trade && <input type="hidden" name="trade" value={f.trade} />}
           <div className="search-bar">
             <span aria-hidden="true">🔍</span>
             <label htmlFor="q" className="sr-only">
@@ -85,6 +90,10 @@ export default async function DirectoryPage({
               autoComplete="off"
             />
           </div>
+
+          {catalog.categories.length > 0 && (
+            <TradeFilters categories={catalog.categories} category={f.category} trade={f.trade} />
+          )}
 
           <details className="filter-panel" open={activeFilters > 0}>
             <summary>
@@ -133,22 +142,6 @@ export default async function DirectoryPage({
         </form>
       </header>
 
-      <nav className="trade-strip" aria-label="Filter by trade">
-        <Link href={directoryHref({ ...f, trade: "", page: 1 })} className={`trade-pill${f.trade ? "" : " active"}`}>
-          All trades
-        </Link>
-        {(trades ?? []).map((t) => (
-          <Link
-            key={t.id}
-            href={directoryHref({ ...f, trade: t.name, page: 1 })}
-            className={`trade-pill${f.trade === t.name ? " active" : ""}`}
-            aria-current={f.trade === t.name ? "true" : undefined}
-          >
-            {TRADE_EMOJI[t.name] ?? "🔧"} {t.name}
-          </Link>
-        ))}
-      </nav>
-
       {loadError ? (
         <div className="card" style={{ borderColor: "var(--red)" }}>
           <h3 style={{ color: "var(--red)" }}>The directory didn&apos;t load</h3>
@@ -177,7 +170,7 @@ export default async function DirectoryPage({
               {matches.length} {matches.length === 1 ? "pro" : "pros"}
             </b>
             {f.q ? ` matching “${f.q}”` : ""}
-            {f.trade ? ` in ${f.trade}` : ""}
+            {f.trade ? ` in ${f.trade}` : f.category ? ` in ${f.category}` : ""}
           </p>
           <ul className="pro-list">
             {shown.map((p) => (

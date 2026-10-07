@@ -28,6 +28,7 @@ export type ProCard = {
 
 export type DirectoryFilters = {
   q: string;
+  category: string; // trade category name, or "" for all
   trade: string; // trade name, or "" for all
   minRating: number; // 0 = any
   maxRate: number; // 0 = any
@@ -53,7 +54,11 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   const sort = one("sort") as DirectoryFilters["sort"];
   return {
     q: one("q").trim().slice(0, 80),
-    trade: one("trade").slice(0, 40),
+    // Names are checked against the real catalogue in resolveTradeFilters; the
+    // limit only stops absurd input. It must exceed the longest trade name
+    // ("Home Inspections & Compliance Certificates" is 42 characters).
+    category: one("category").slice(0, 80),
+    trade: one("trade").slice(0, 80),
     minRating: Math.min(num("minRating"), 5),
     maxRate: num("maxRate"),
     verifiedOnly: one("verified") === "1",
@@ -142,9 +147,17 @@ export async function fetchApprovedPro(supabase: SupabaseClient, id: string) {
  * application code rather than SQL, which is fine at pilot volume; move it
  * into a database function when the directory passes a few hundred pros.
  */
-export function applyFilters(pros: ProCard[], f: DirectoryFilters): ProCard[] {
+export function applyFilters(
+  pros: ProCard[],
+  f: DirectoryFilters,
+  catalog: TradeCatalog = { categories: [] }
+): ProCard[] {
   const q = f.q.toLowerCase();
+  const categoryTrades = f.category
+    ? new Set(catalog.categories.find((c) => c.name === f.category)?.trades.map((t) => t.name) ?? [])
+    : null;
   const list = pros.filter((p) => {
+    if (categoryTrades && !p.trades.some((t) => categoryTrades.has(t.name))) return false;
     if (f.trade && !p.trades.some((t) => t.name === f.trade)) return false;
     if (f.minRating && (p.rating ?? 0) < f.minRating) return false;
     if (f.maxRate && (p.hourlyRate ?? Infinity) > f.maxRate) return false;
@@ -179,6 +192,7 @@ export function applyFilters(pros: ProCard[], f: DirectoryFilters): ProCard[] {
 export function directoryHref(f: Partial<DirectoryFilters>): string {
   const p = new URLSearchParams();
   if (f.q) p.set("q", f.q);
+  if (f.category) p.set("category", f.category);
   if (f.trade) p.set("trade", f.trade);
   if (f.minRating) p.set("minRating", String(f.minRating));
   if (f.maxRate) p.set("maxRate", String(f.maxRate));
@@ -187,6 +201,48 @@ export function directoryHref(f: Partial<DirectoryFilters>): string {
   if (f.page && f.page > 1) p.set("page", String(f.page));
   const s = p.toString();
   return s ? `/pros?${s}` : "/pros";
+}
+
+export type TradeCategory = {
+  id: string;
+  name: string;
+  trades: { id: string; name: string }[];
+};
+
+export type TradeCatalog = { categories: TradeCategory[] };
+
+/**
+ * Categories in display order, each with its trades sorted by name. Two plain
+ * reads rather than an embedded select, so nothing depends on how PostgREST
+ * names the trades -> trade_categories relationship.
+ */
+export async function fetchTradeCatalog(supabase: SupabaseClient): Promise<TradeCatalog> {
+  const [cats, trades] = await Promise.all([
+    supabase.from("trade_categories").select("id, name, sort_order").order("sort_order"),
+    supabase.from("trades").select("id, name, category_id").order("name"),
+  ]);
+  if (cats.error) throw new Error(cats.error.message);
+  if (trades.error) throw new Error(trades.error.message);
+  const rows = (trades.data ?? []) as { id: string; name: string; category_id: string }[];
+  return {
+    categories: ((cats.data ?? []) as { id: string; name: string }[]).map((c) => ({
+      id: c.id,
+      name: c.name,
+      trades: rows.filter((t) => t.category_id === c.id).map(({ id, name }) => ({ id, name })),
+    })),
+  };
+}
+
+/**
+ * Accept the category and trade from the URL only if they exist, and drop a
+ * trade that doesn't belong to the chosen category. Unknown values are
+ * ignored rather than shown as an empty result.
+ */
+export function resolveTradeFilters(f: DirectoryFilters, catalog: TradeCatalog): DirectoryFilters {
+  const category = catalog.categories.find((c) => c.name === f.category);
+  const pool = category ? category.trades : catalog.categories.flatMap((c) => c.trades);
+  const trade = pool.some((t) => t.name === f.trade) ? f.trade : "";
+  return { ...f, category: category ? category.name : "", trade };
 }
 
 export function initials(name: string): string {

@@ -197,7 +197,7 @@ a { text-decoration: none; color: inherit; }
 .nav a.primary { background: var(--blue); color: var(--white); }
 .nav a.primary:hover { background: var(--blue-light); }
 a.chip:hover { background: var(--mist-2); }
-a.chip:focus-visible, .trade-pill:focus-visible, .pro-card:focus-visible,
+a.chip:focus-visible, .pro-card:focus-visible,
 .round-btn:focus-visible, .auth-pill:focus-visible, .btn:focus-visible {
   outline: 2px solid var(--blue); outline-offset: 2px;
 }
@@ -260,16 +260,10 @@ a.chip:focus-visible, .trade-pill:focus-visible, .pro-card:focus-visible,
 .toggle.dark input { width: 18px; height: 18px; accent-color: var(--blue); }
 .search-submit { width: 100%; }
 
-/* ---- trade filter strip ---- */
-.trade-strip {
-  display: flex; gap: 8px; overflow-x: auto; padding: 14px 20px 4px; scrollbar-width: none;
-}
-.trade-strip::-webkit-scrollbar { display: none; }
-.trade-pill {
-  flex-shrink: 0; white-space: nowrap; padding: 9px 15px; border-radius: 20px;
-  background: var(--mist); color: var(--navy); font-size: 12.5px; font-weight: 600;
-}
-.trade-pill.active { background: var(--navy); color: var(--white); }
+/* ---- category and trade dropdowns ---- */
+.trade-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.trade-filters select { min-width: 0; width: 100%; text-overflow: ellipsis; }
+.field.dark select optgroup { color: var(--ink); font-weight: 700; }
 
 /* ---- results ---- */
 .results-count { padding: 14px 20px 2px; margin: 0; font-size: 13px; color: var(--ink-soft); }
